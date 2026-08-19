@@ -1,0 +1,37 @@
+[
+  {
+    "id": "w6aA4LwA398",
+    "title": "Easy German 1 - Basic phrases",
+    "cefr": "A1",
+    "grammar": ["Modal Verbs"],
+    "format": "Tutorials"
+  },
+  {
+    "id": "-qI1Y474J3k",
+    "title": "Street Interview in Berlin",
+    "cefr": "A2",
+    "grammar": ["Cases"],
+    "format": "Street Interviews"
+  },
+  {
+    "id": "J7Pz-Hl3DCE",
+    "title": "Learn German Passive Voice",
+    "cefr": "B1",
+    "grammar": ["Passive Voice (werden)"],
+    "format": "Tutorials"
+  },
+  {
+    "id": "kU9Z2QfL1gE",
+    "title": "A Day in Munich",
+    "cefr": "B2",
+    "grammar": ["Connectors"],
+    "format": "Vlogs"
+  },
+  {
+    "id": "pL38l-f-1s4",
+    "title": "Advanced Connectors",
+    "cefr": "C1",
+    "grammar": ["Connectors", "Passive Voice (werden)"],
+    "format": "Tutorials"
+  }
+]

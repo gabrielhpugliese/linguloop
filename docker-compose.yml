@@ -1,0 +1,7 @@
+services:
+  linguloop:
+    build: .
+    ports:
+      - "4000:80"
+    restart: unless-stopped
+    container_name: linguloop-app

@@ -1,69 +1,241 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, Container, Typography, Paper, 
+  Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
+  FormGroup, Checkbox, ToggleButton, ToggleButtonGroup, Button,
+  TextField, Switch, Grid
+} from '@mui/material';
+import videosData from '../data/videos.json';
+
+const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const grammarTopics = ['Passive Voice (werden)', 'Connectors', 'Cases', 'Modal Verbs'];
+const videoFormats = ['Tutorials', 'Street Interviews', 'Vlogs'];
 
 export default function Home() {
+  const [cefr, setCefr] = useState<string>('');
+  const [grammar, setGrammar] = useState<string[]>([]);
+  const [format, setFormat] = useState<string>('');
+  
+  const [currentVideo, setCurrentVideo] = useState<typeof videosData[0] | null>(null);
+  const [notes, setNotes] = useState<string>('');
+  const [blindCorrection, setBlindCorrection] = useState<boolean>(false);
+
+  // Load random video initially or when 'Next Random Video' is clicked
+  const loadRandomVideo = () => {
+    // Filter videos based on selection
+    let filtered = videosData;
+    if (cefr) {
+      filtered = filtered.filter(v => v.cefr === cefr);
+    }
+    if (grammar.length > 0) {
+      filtered = filtered.filter(v => grammar.some(g => v.grammar.includes(g)));
+    }
+    if (format) {
+      filtered = filtered.filter(v => v.format === format);
+    }
+
+    if (filtered.length === 0) {
+      alert("No videos match the selected filters. Showing a random video instead.");
+      filtered = videosData;
+    }
+
+    const randomIndex = Math.floor(Math.random() * filtered.length);
+    const selected = filtered[randomIndex];
+    setCurrentVideo(selected);
+  };
+
+  useEffect(() => {
+    loadRandomVideo();
+  }, []);
+
+  // Handle local storage for notes
+  useEffect(() => {
+    if (currentVideo) {
+      const savedNotes = localStorage.getItem(`notes_${currentVideo.id}`);
+      if (savedNotes) {
+        setNotes(savedNotes);
+      } else {
+        setNotes('');
+      }
+    }
+  }, [currentVideo]);
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newNotes = e.target.value;
+    setNotes(newNotes);
+    if (currentVideo) {
+      localStorage.setItem(`notes_${currentVideo.id}`, newNotes);
+    }
+  };
+
+  const handleGrammarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const topic = event.target.name;
+    setGrammar(prev => 
+      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
+    );
+  };
+
+  const handleFormatChange = (
+    event: React.MouseEvent<HTMLElement>,
+    newFormat: string | null,
+  ) => {
+    if (newFormat !== null) {
+      setFormat(newFormat);
+    } else {
+      setFormat('');
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Grid container spacing={4}>
+        {/* Left Column */}
+        <Grid size={{ xs: 12, md: 4, lg: 3.6 }}>
+          <Box sx={{ position: 'sticky', top: 24 }}>
+            <Paper className="glass-panel" sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }} color="primary">
+                LinguLoop Filters
+              </Typography>
+
+              {/* CEFR Level */}
+              <FormControl component="fieldset" sx={{ mt: 2, display: 'block' }}>
+                <FormLabel component="legend" color="secondary">CEFR Level</FormLabel>
+                <RadioGroup
+                  row
+                  value={cefr}
+                  onChange={(e) => setCefr(e.target.value)}
+                >
+                  <FormControlLabel value="" control={<Radio size="small" />} label="Any" />
+                  {cefrLevels.map(level => (
+                    <FormControlLabel key={level} value={level} control={<Radio size="small" />} label={level} />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+
+              {/* Grammar Topics */}
+              <FormControl component="fieldset" sx={{ mt: 3, display: 'block' }}>
+                <FormLabel component="legend" color="secondary">Grammar Topics</FormLabel>
+                <FormGroup>
+                  {grammarTopics.map(topic => (
+                    <FormControlLabel
+                      key={topic}
+                      control={
+                        <Checkbox 
+                          checked={grammar.includes(topic)} 
+                          onChange={handleGrammarChange} 
+                          name={topic} 
+                          size="small"
+                        />
+                      }
+                      label={topic}
+                    />
+                  ))}
+                </FormGroup>
+              </FormControl>
+
+              {/* Video Format */}
+              <FormControl component="fieldset" sx={{ mt: 3, display: 'block' }}>
+                <FormLabel component="legend" color="secondary" sx={{ mb: 1 }}>Video Format</FormLabel>
+                <ToggleButtonGroup
+                  value={format}
+                  exclusive
+                  onChange={handleFormatChange}
+                  aria-label="video format"
+                  size="small"
+                  fullWidth
+                >
+                  {videoFormats.map(f => (
+                    <ToggleButton key={f} value={f} aria-label={f}>
+                      {f}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </FormControl>
+
+              <Button 
+                variant="contained" 
+                color="primary" 
+                fullWidth 
+                sx={{ mt: 4, py: 1.5, fontWeight: 'bold' }}
+                onClick={loadRandomVideo}
+              >
+                Next Random Video
+              </Button>
+            </Paper>
+
+            {/* 300x250 Ad Placeholder */}
+            <Box 
+              sx={{ 
+                width: 300, 
+                height: 250, 
+                backgroundColor: '#333', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                margin: '0 auto',
+                border: '1px solid #555',
+                color: '#888'
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              300x250 Medium Rectangle Ad
+            </Box>
+          </Box>
+        </Grid>
+
+        {/* Right Column */}
+        <Grid size={{ xs: 12, md: 8, lg: 8.4 }}>
+          {currentVideo ? (
+            <Box>
+              <Paper className="glass-panel" sx={{ overflow: 'hidden', mb: 4 }}>
+                <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
+                  <iframe
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                    src={`https://www.youtube.com/embed/${currentVideo.id}`}
+                    title={currentVideo.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </Box>
+                <Box sx={{ p: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" color="secondary" sx={{ fontWeight: 'bold' }}>[{currentVideo.cefr}]</Typography>
+                  <Typography variant="body2">{currentVideo.title}</Typography>
+                </Box>
+              </Paper>
+
+              <Paper className="glass-panel" sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>My Notes</Typography>
+                  <FormControlLabel
+                    control={<Switch checked={blindCorrection} onChange={(e) => setBlindCorrection(e.target.checked)} color="secondary" />}
+                    label="Blind Correction"
+                  />
+                </Box>
+                <TextField
+                  multiline
+                  fullWidth
+                  rows={10}
+                  variant="outlined"
+                  placeholder="Take your notes here..."
+                  value={notes}
+                  onChange={handleNotesChange}
+                  sx={{
+                    '& .MuiInputBase-input': {
+                      filter: blindCorrection ? 'blur(8px)' : 'none',
+                      transition: 'filter 0.3s ease, opacity 0.3s ease',
+                      opacity: blindCorrection ? 0.3 : 1,
+                    }
+                  }}
+                />
+              </Paper>
+            </Box>
+          ) : (
+            <Typography>Loading video...</Typography>
+          )}
+        </Grid>
+      </Grid>
+    </Container>
   );
 }
