@@ -5,19 +5,46 @@ import {
   Box, Container, Typography, Paper, 
   Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
   FormGroup, Checkbox, ToggleButton, ToggleButtonGroup, Button,
-  TextField, Switch, Grid
+  TextField, Switch, Grid, Chip, Tabs, Tab
 } from '@mui/material';
 const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const grammarTopicsByLevel: Record<string, string[]> = {
-  'A1': ['Articles (Der, Die, Das)', 'Present Tense (Präsens)', 'Pronouns (er, sie, es)', 'Modal Verbs (können, müssen)'],
-  'A2': ['Cases (Nominative, Accusative, Dative)', 'Imperative', 'Perfect Tense (Perfekt)', 'Adjective Declension'],
-  'B1': ['Passive Voice (werden)', 'Subjunctive II (Konjunktiv II)', 'Prepositions (Wechselpräpositionen)', 'Relative Clauses'],
-  'B2': ['Connectors (weil, obwohl, deshalb)', 'Participles (Partizip I & II)', 'Plusquamperfekt'],
-  'C1': ['Nominalization (Nomen-Verb-Verbindungen)', 'Extended Adjective Modifiers', 'Subjunctive I (Konjunktiv I)', 'Stylistic Devices'],
-  'C2': ['Nominalization (Nomen-Verb-Verbindungen)', 'Extended Adjective Modifiers', 'Subjunctive I (Konjunktiv I)', 'Stylistic Devices']
+  'A1': [
+    'Articles (Der, Die, Das, ein, eine)', 'Personal Pronouns', 'Present Tense (Präsens)',
+    'Separable Verbs (Trennbare Verben)', 'Modal Verbs (können, müssen, wollen)', 
+    'Possessive Articles (mein, dein)', 'Negation (nicht, kein)', 'Basic Imperative (Imperativ)', 'W-Questions'
+  ],
+  'A2': [
+    'Perfect Tense (Perfekt)', 'Preterite (Präteritum)', 'Dative Case (Dativ)', 'Accusative Case (Akkusativ)',
+    'Two-Way Prepositions (Wechselpräpositionen)', 'Adjective Declension (Adjektivdeklination)',
+    'Reflexive Verbs', 'Subordinate Clauses (weil, dass, wenn)', 'Comparison (Komparativ & Superlativ)'
+  ],
+  'B1': [
+    'Passive Voice (Passiv - Präsens & Perfekt)', 'Subjunctive II (Konjunktiv II - Höflichkeit, Irrealis)',
+    'Relative Clauses (Relativsätze)', 'Infinitive with "zu"', 'Future Tense (Futur I)', 'Genitive Case (Genitiv)',
+    'n-Declension (n-Deklination)', 'Past Perfect (Plusquamperfekt)', 'Multi-part Connectors (entweder...oder)'
+  ],
+  'B2': [
+    'Participles as Adjectives (Partizip I & II)', 'Passive Alternatives (sich lassen, sein zu)',
+    'Subjective Use of Modals', 'Subjunctive I (Konjunktiv I - Indirekte Rede)', 'Noun-Verb Connections (Nomen-Verb-Verbindungen)',
+    'Advanced Prepositions (wegen, trotz)', 'Future II (Futur II)'
+  ],
+  'C1': [
+    'Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization',
+    'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs'
+  ],
+  'C2': [
+    'Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization',
+    'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs'
+  ]
 };
 const allGrammarTopics = Array.from(new Set(Object.values(grammarTopicsByLevel).flat()));
-const videoFormats = ['Tutorials', 'Street Interviews', 'Vlogs'];
+const videoFormats = [
+  'Tutorials', 'Street Interviews', 'Vlogs', 
+  'Podcasts', 'News & Documentaries', 'Cartoons / Stories', 
+  'Music / Lyrics', 'Shadowing (Pronunciation)', 'Movies & TV Shows', 'Shorts',
+  'Exam Prep / Mock Tests'
+];
 
 interface VideoData {
   id: string;
@@ -30,7 +57,8 @@ interface VideoData {
 export default function Home() {
   const [cefr, setCefr] = useState<string>('');
   const [grammar, setGrammar] = useState<string[]>([]);
-  const [format, setFormat] = useState<string>('');
+  const [formats, setFormats] = useState<string[]>([]);
+  const [filterTab, setFilterTab] = useState<number>(0);
   
   const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -44,7 +72,7 @@ export default function Home() {
       const params = new URLSearchParams();
       if (cefr) params.append('cefr', cefr);
       if (grammar.length > 0) params.append('grammar', grammar.join(' '));
-      if (format) params.append('format', format);
+      if (formats.length > 0) params.append('format', formats.join(','));
 
       const res = await fetch(`/api/videos?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch');
@@ -90,16 +118,7 @@ export default function Home() {
     );
   };
 
-  const handleFormatChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newFormat: string | null,
-  ) => {
-    if (newFormat !== null) {
-      setFormat(newFormat);
-    } else {
-      setFormat('');
-    }
-  };
+
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -107,13 +126,13 @@ export default function Home() {
         {/* Left Column */}
         <Grid size={{ xs: 12, md: 4, lg: 3.6 }}>
           <Box sx={{ position: 'sticky', top: 24 }}>
-            <Paper className="glass-panel" sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }} color="primary">
+            <Paper className="glass-panel" sx={{ p: 2, mb: 4 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
                 LinguLoop Filters
               </Typography>
 
-              {/* CEFR Level */}
-              <FormControl component="fieldset" sx={{ mt: 2, display: 'block' }}>
+              {/* CEFR Level - Always Visible */}
+              <FormControl component="fieldset" sx={{ mt: 1, display: 'block' }}>
                 <FormLabel component="legend" color="secondary">CEFR Level</FormLabel>
                 <RadioGroup
                   row
@@ -130,51 +149,72 @@ export default function Home() {
                 </RadioGroup>
               </FormControl>
 
-              {/* Grammar Topics */}
-              <FormControl component="fieldset" sx={{ mt: 3, display: 'block' }}>
-                <FormLabel component="legend" color="secondary">Grammar Topics</FormLabel>
-                <FormGroup>
-                  {(cefr ? grammarTopicsByLevel[cefr] : allGrammarTopics).map(topic => (
-                    <FormControlLabel
-                      key={topic}
-                      control={
-                        <Checkbox 
-                          checked={grammar.includes(topic)} 
-                          onChange={handleGrammarChange} 
-                          name={topic} 
-                          size="small"
-                        />
-                      }
-                      label={topic}
-                    />
-                  ))}
-                </FormGroup>
-              </FormControl>
+              {/* Tabs for Grammar and Format */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mt: 1, mb: 1 }}>
+                <Tabs value={filterTab} onChange={(e, val) => setFilterTab(val)} variant="fullWidth">
+                  <Tab label={`Grammar ${grammar.length > 0 ? `(${grammar.length})` : ''}`} sx={{ fontWeight: 'bold' }} />
+                  <Tab label={`Format ${formats.length > 0 ? `(${formats.length})` : ''}`} sx={{ fontWeight: 'bold' }} />
+                </Tabs>
+              </Box>
 
-              {/* Video Format */}
-              <FormControl component="fieldset" sx={{ mt: 3, display: 'block' }}>
-                <FormLabel component="legend" color="secondary" sx={{ mb: 1 }}>Video Format</FormLabel>
-                <ToggleButtonGroup
-                  value={format}
-                  exclusive
-                  onChange={handleFormatChange}
-                  aria-label="video format"
-                  size="small"
-                  fullWidth
-                >
-                  {videoFormats.map(f => (
-                    <ToggleButton key={f} value={f} aria-label={f}>
-                      {f}
-                    </ToggleButton>
-                  ))}
-                </ToggleButtonGroup>
-              </FormControl>
+              {/* Scrollable Tab Content */}
+              <Box sx={{ 
+                maxHeight: 295, 
+                overflowY: 'auto', 
+                pr: 1, 
+                mb: 2,
+                '&::-webkit-scrollbar': { width: '8px' },
+                '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
+                '&::-webkit-scrollbar-thumb': { background: '#888', borderRadius: '10px' },
+                '&::-webkit-scrollbar-thumb:hover': { background: '#555' }
+              }}>
+                {filterTab === 0 && (
+                  <FormControl component="fieldset" sx={{ display: 'block' }}>
+                    <FormGroup>
+                      {(cefr ? grammarTopicsByLevel[cefr] : allGrammarTopics).map(topic => (
+                        <FormControlLabel
+                          key={topic}
+                          control={
+                            <Checkbox 
+                              checked={grammar.includes(topic)} 
+                              onChange={handleGrammarChange} 
+                              name={topic} 
+                              size="small"
+                            />
+                          }
+                          label={topic}
+                        />
+                      ))}
+                    </FormGroup>
+                  </FormControl>
+                )}
+
+                {filterTab === 1 && (
+                  <FormControl component="fieldset" sx={{ display: 'block' }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {videoFormats.map(f => (
+                        <Chip
+                          key={f}
+                          label={f}
+                          clickable
+                          color={formats.includes(f) ? "primary" : "default"}
+                          onClick={() => {
+                            setFormats(prev => 
+                              prev.includes(f) ? prev.filter(item => item !== f) : [...prev, f]
+                            );
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  </FormControl>
+                )}
+              </Box>
 
               <Button 
                 variant="contained" 
                 color="primary" 
                 fullWidth 
-                sx={{ mt: 4, py: 1.5, fontWeight: 'bold' }}
+                sx={{ mt: 2, py: 1.5, fontWeight: 'bold' }}
                 onClick={loadRandomVideo}
                 disabled={isLoading}
               >
