@@ -7,43 +7,48 @@ import {
   FormGroup, Checkbox, ToggleButton, ToggleButtonGroup, Button,
   TextField, Switch, Grid
 } from '@mui/material';
-import videosData from '../data/videos.json';
-
 const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const grammarTopics = ['Passive Voice (werden)', 'Connectors', 'Cases', 'Modal Verbs'];
+const grammarTopics = ['Passive Voice', 'Connectors', 'Cases', 'Modal Verbs'];
 const videoFormats = ['Tutorials', 'Street Interviews', 'Vlogs'];
+
+interface VideoData {
+  id: string;
+  title: string;
+  cefr: string;
+  grammar: string[];
+  format: string;
+}
 
 export default function Home() {
   const [cefr, setCefr] = useState<string>('');
   const [grammar, setGrammar] = useState<string[]>([]);
   const [format, setFormat] = useState<string>('');
   
-  const [currentVideo, setCurrentVideo] = useState<typeof videosData[0] | null>(null);
+  const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
   const [blindCorrection, setBlindCorrection] = useState<boolean>(false);
 
   // Load random video initially or when 'Next Random Video' is clicked
-  const loadRandomVideo = () => {
-    // Filter videos based on selection
-    let filtered = videosData;
-    if (cefr) {
-      filtered = filtered.filter(v => v.cefr === cefr);
-    }
-    if (grammar.length > 0) {
-      filtered = filtered.filter(v => grammar.some(g => v.grammar.includes(g)));
-    }
-    if (format) {
-      filtered = filtered.filter(v => v.format === format);
-    }
+  const loadRandomVideo = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (cefr) params.append('cefr', cefr);
+      if (grammar.length > 0) params.append('grammar', grammar.join(' '));
+      if (format) params.append('format', format);
 
-    if (filtered.length === 0) {
-      alert("No videos match the selected filters. Showing a random video instead.");
-      filtered = videosData;
+      const res = await fetch(`/api/videos?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      
+      const data = await res.json();
+      setCurrentVideo(data);
+    } catch (error) {
+      console.error(error);
+      alert("No videos match the selected filters or there was an error fetching from YouTube.");
+    } finally {
+      setIsLoading(false);
     }
-
-    const randomIndex = Math.floor(Math.random() * filtered.length);
-    const selected = filtered[randomIndex];
-    setCurrentVideo(selected);
   };
 
   useEffect(() => {
@@ -160,8 +165,9 @@ export default function Home() {
                 fullWidth 
                 sx={{ mt: 4, py: 1.5, fontWeight: 'bold' }}
                 onClick={loadRandomVideo}
+                disabled={isLoading}
               >
-                Next Random Video
+                {isLoading ? 'Searching YouTube...' : 'Next Random Video'}
               </Button>
             </Paper>
 
