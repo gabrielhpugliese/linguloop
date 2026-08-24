@@ -8,7 +8,15 @@ import {
   TextField, Switch, Grid
 } from '@mui/material';
 const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const grammarTopics = ['Passive Voice', 'Connectors', 'Cases', 'Modal Verbs'];
+const grammarTopicsByLevel: Record<string, string[]> = {
+  'A1': ['Articles (Der, Die, Das)', 'Present Tense (Präsens)', 'Pronouns (er, sie, es)', 'Modal Verbs (können, müssen)'],
+  'A2': ['Cases (Nominative, Accusative, Dative)', 'Imperative', 'Perfect Tense (Perfekt)', 'Adjective Declension'],
+  'B1': ['Passive Voice (werden)', 'Subjunctive II (Konjunktiv II)', 'Prepositions (Wechselpräpositionen)', 'Relative Clauses'],
+  'B2': ['Connectors (weil, obwohl, deshalb)', 'Participles (Partizip I & II)', 'Plusquamperfekt'],
+  'C1': ['Nominalization (Nomen-Verb-Verbindungen)', 'Extended Adjective Modifiers', 'Subjunctive I (Konjunktiv I)', 'Stylistic Devices'],
+  'C2': ['Nominalization (Nomen-Verb-Verbindungen)', 'Extended Adjective Modifiers', 'Subjunctive I (Konjunktiv I)', 'Stylistic Devices']
+};
+const allGrammarTopics = Array.from(new Set(Object.values(grammarTopicsByLevel).flat()));
 const videoFormats = ['Tutorials', 'Street Interviews', 'Vlogs'];
 
 interface VideoData {
@@ -110,7 +118,10 @@ export default function Home() {
                 <RadioGroup
                   row
                   value={cefr}
-                  onChange={(e) => setCefr(e.target.value)}
+                  onChange={(e) => {
+                    setCefr(e.target.value);
+                    setGrammar([]);
+                  }}
                 >
                   <FormControlLabel value="" control={<Radio size="small" />} label="Any" />
                   {cefrLevels.map(level => (
@@ -123,7 +134,7 @@ export default function Home() {
               <FormControl component="fieldset" sx={{ mt: 3, display: 'block' }}>
                 <FormLabel component="legend" color="secondary">Grammar Topics</FormLabel>
                 <FormGroup>
-                  {grammarTopics.map(topic => (
+                  {(cefr ? grammarTopicsByLevel[cefr] : allGrammarTopics).map(topic => (
                     <FormControlLabel
                       key={topic}
                       control={
