@@ -5,40 +5,51 @@ import {
   Box, Container, Typography, Paper, 
   Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
   FormGroup, Checkbox, ToggleButton, ToggleButtonGroup, Button,
-  TextField, Switch, Grid, Chip, Tabs, Tab
+  TextField, Switch, Grid, Chip, Tabs, Tab, Select, MenuItem
 } from '@mui/material';
 const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const grammarTopicsByLevel: Record<string, string[]> = {
-  'A1': [
-    'Articles (Der, Die, Das, ein, eine)', 'Personal Pronouns', 'Present Tense (Präsens)',
-    'Separable Verbs (Trennbare Verben)', 'Modal Verbs (können, müssen, wollen)', 
-    'Possessive Articles (mein, dein)', 'Negation (nicht, kein)', 'Basic Imperative (Imperativ)', 'W-Questions'
-  ],
-  'A2': [
-    'Perfect Tense (Perfekt)', 'Preterite (Präteritum)', 'Dative Case (Dativ)', 'Accusative Case (Akkusativ)',
-    'Two-Way Prepositions (Wechselpräpositionen)', 'Adjective Declension (Adjektivdeklination)',
-    'Reflexive Verbs', 'Subordinate Clauses (weil, dass, wenn)', 'Comparison (Komparativ & Superlativ)'
-  ],
-  'B1': [
-    'Passive Voice (Passiv - Präsens & Perfekt)', 'Subjunctive II (Konjunktiv II - Höflichkeit, Irrealis)',
-    'Relative Clauses (Relativsätze)', 'Infinitive with "zu"', 'Future Tense (Futur I)', 'Genitive Case (Genitiv)',
-    'n-Declension (n-Deklination)', 'Past Perfect (Plusquamperfekt)', 'Multi-part Connectors (entweder...oder)'
-  ],
-  'B2': [
-    'Participles as Adjectives (Partizip I & II)', 'Passive Alternatives (sich lassen, sein zu)',
-    'Subjective Use of Modals', 'Subjunctive I (Konjunktiv I - Indirekte Rede)', 'Noun-Verb Connections (Nomen-Verb-Verbindungen)',
-    'Advanced Prepositions (wegen, trotz)', 'Future II (Futur II)'
-  ],
-  'C1': [
-    'Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization',
-    'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs'
-  ],
-  'C2': [
-    'Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization',
-    'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs'
-  ]
+const supportedLanguages = ['German', 'English', 'Spanish', 'Portuguese'];
+const languageFlags: Record<string, string> = {
+  German: '🇩🇪',
+  English: '🇬🇧',
+  Spanish: '🇪🇸',
+  Portuguese: '🇧🇷'
 };
-const allGrammarTopics = Array.from(new Set(Object.values(grammarTopicsByLevel).flat()));
+
+const grammarTopicsByLanguage: Record<string, Record<string, string[]>> = {
+  German: {
+    'A1': ['Articles (Der, Die, Das, ein, eine)', 'Personal Pronouns', 'Present Tense (Präsens)', 'Separable Verbs (Trennbare Verben)', 'Modal Verbs (können, müssen, wollen)', 'Possessive Articles (mein, dein)', 'Negation (nicht, kein)', 'Basic Imperative (Imperativ)', 'W-Questions'],
+    'A2': ['Perfect Tense (Perfekt)', 'Preterite (Präteritum)', 'Dative Case (Dativ)', 'Accusative Case (Akkusativ)', 'Two-Way Prepositions (Wechselpräpositionen)', 'Adjective Declension (Adjektivdeklination)', 'Reflexive Verbs', 'Subordinate Clauses (weil, dass, wenn)', 'Comparison (Komparativ & Superlativ)'],
+    'B1': ['Passive Voice (Passiv - Präsens & Perfekt)', 'Subjunctive II (Konjunktiv II - Höflichkeit, Irrealis)', 'Relative Clauses (Relativsätze)', 'Infinitive with "zu"', 'Future Tense (Futur I)', 'Genitive Case (Genitiv)', 'n-Declension (n-Deklination)', 'Past Perfect (Plusquamperfekt)', 'Multi-part Connectors (entweder...oder)'],
+    'B2': ['Participles as Adjectives (Partizip I & II)', 'Passive Alternatives (sich lassen, sein zu)', 'Subjective Use of Modals', 'Subjunctive I (Konjunktiv I - Indirekte Rede)', 'Noun-Verb Connections (Nomen-Verb-Verbindungen)', 'Advanced Prepositions (wegen, trotz)', 'Future II (Futur II)'],
+    'C1': ['Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization', 'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs'],
+    'C2': ['Extended Adjective Modifiers (Erweiterte Adjektivattribute)', 'Nominalization & Verbalization', 'Complex Sentence Structures (Schachtelsätze)', 'Stylistic Devices (Stilmittel)', 'Idioms and Phrasal Verbs']
+  },
+  English: {
+    'A1': ['To be', 'Present Simple', 'Pronouns', 'Articles (a/an/the)', 'Plurals', 'There is / There are'],
+    'A2': ['Past Simple', 'Present Continuous', 'Comparatives / Superlatives', 'Future (will / going to)', 'Modal Verbs (can, must, should)'],
+    'B1': ['Present Perfect', 'First Conditional', 'Passive Voice (Present / Past)', 'Relative Clauses'],
+    'B2': ['Second / Third Conditional', 'Past Perfect', 'Reported Speech', 'Phrasal Verbs'],
+    'C1': ['Mixed Conditionals', 'Inversion', 'Advanced Passives', 'Participle Clauses', 'Advanced Phrasal Verbs'],
+    'C2': ['Mixed Conditionals', 'Inversion', 'Advanced Passives', 'Participle Clauses', 'Advanced Phrasal Verbs']
+  },
+  Spanish: {
+    'A1': ['Ser / Estar', 'Presente de Indicativo', 'Artículos y Género', 'Pronombres Personales', 'Verbos Reflexivos', 'Gustar'],
+    'A2': ['Pretérito Indefinido', 'Pretérito Imperfecto', 'Futuro Próximo', 'Imperativo Afirmativo', 'Comparativos'],
+    'B1': ['Subjuntivo (Presente)', 'Pretérito Perfecto', 'Condicional Simple', 'Por vs Para', 'Voz Pasiva'],
+    'B2': ['Subjuntivo (Imperfecto)', 'Pluscuamperfecto', 'Oraciones de Relativo', 'Estilo Indirecto'],
+    'C1': ['Subjuntivo Avanzado', 'Perífrasis Verbales', 'Expresiones Idiomáticas', 'Conectores Complejos', 'Verbos de Cambio'],
+    'C2': ['Subjuntivo Avanzado', 'Perífrasis Verbales', 'Expresiones Idiomáticas', 'Conectores Complejos', 'Verbos de Cambio']
+  },
+  Portuguese: {
+    'A1': ['Ser / Estar / Ter', 'Presente do Indicativo', 'Artigos', 'Contrações', 'Verbos Regulares', 'Pronomes'],
+    'A2': ['Pretérito Perfeito', 'Pretérito Imperfeito', 'Futuro do Presente', 'Imperativo', 'Comparativos'],
+    'B1': ['Subjuntivo (Presente)', 'Pretérito Mais-Que-Perfeito', 'Futuro do Subjuntivo', 'Voz Passiva', 'Pronomes Relativos'],
+    'B2': ['Subjuntivo (Imperfeito)', 'Infinitivo Pessoal', 'Discurso Indireto', 'Conjunções'],
+    'C1': ['Tempos Compostos', 'Subjuntivo Avançado', 'Expressões Idiomáticas', 'Colocação Pronominal Avançada'],
+    'C2': ['Tempos Compostos', 'Subjuntivo Avançado', 'Expressões Idiomáticas', 'Colocação Pronominal Avançada']
+  }
+};
 const videoFormats = [
   'Tutorials', 'Street Interviews', 'Vlogs', 
   'Podcasts', 'News & Documentaries', 'Cartoons / Stories', 
@@ -55,10 +66,14 @@ interface VideoData {
 }
 
 export default function Home() {
+  const [language, setLanguage] = useState<string>('German');
   const [cefr, setCefr] = useState<string>('');
   const [grammar, setGrammar] = useState<string[]>([]);
   const [formats, setFormats] = useState<string[]>([]);
   const [filterTab, setFilterTab] = useState<number>(0);
+
+  const currentGrammarTopics = grammarTopicsByLanguage[language];
+  const allGrammarTopics = Array.from(new Set(Object.values(currentGrammarTopics).flat()));
   
   const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -70,6 +85,7 @@ export default function Home() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append('language', language);
       if (cefr) params.append('cefr', cefr);
       if (grammar.length > 0) params.append('grammar', grammar.join(' '));
       if (formats.length > 0) params.append('format', formats.join(','));
@@ -131,6 +147,28 @@ export default function Home() {
                 LinguLoop Filters
               </Typography>
 
+              {/* Target Language */}
+              <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
+                <FormLabel color="secondary">Target Language</FormLabel>
+                <Select
+                  value={language}
+                  size="small"
+                  onChange={(e) => {
+                    setLanguage(e.target.value as string);
+                    setCefr('');
+                    setGrammar([]);
+                    setFormats([]);
+                  }}
+                  sx={{ mt: 1 }}
+                >
+                  {supportedLanguages.map(lang => (
+                    <MenuItem key={lang} value={lang}>
+                      <span style={{ marginRight: '8px' }}>{languageFlags[lang]}</span> {lang}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
               {/* CEFR Level - Always Visible */}
               <FormControl component="fieldset" sx={{ mt: 1, display: 'block' }}>
                 <FormLabel component="legend" color="secondary">CEFR Level</FormLabel>
@@ -171,7 +209,7 @@ export default function Home() {
                 {filterTab === 0 && (
                   <FormControl component="fieldset" sx={{ display: 'block' }}>
                     <FormGroup>
-                      {(cefr ? grammarTopicsByLevel[cefr] : allGrammarTopics).map(topic => (
+                      {(cefr ? currentGrammarTopics[cefr] : allGrammarTopics).map(topic => (
                         <FormControlLabel
                           key={topic}
                           control={
