@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import ytSearch from 'yt-search';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,21 +34,35 @@ const FORMAT_KEYWORDS: Record<string, string> = {
   
   const query = queryTerms.join(' ');
 
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  if (!YOUTUBE_API_KEY) {
+    console.error('YOUTUBE_API_KEY is not set in environment variables.');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   try {
-    const r = await ytSearch(query);
-    const videos = r.videos;
+    const youtubeRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`
+    );
+    
+    if (!youtubeRes.ok) {
+      console.error('YouTube API error:', await youtubeRes.text());
+      return NextResponse.json({ error: 'YouTube API error' }, { status: 500 });
+    }
+
+    const data = await youtubeRes.json();
+    const videos = data.items;
 
     if (!videos || videos.length === 0) {
       return NextResponse.json({ error: 'No videos found' }, { status: 404 });
     }
 
-    // Pick a random video from the top 20 results (or however many were returned)
-    const topResults = videos.slice(0, 20);
-    const randomVideo = topResults[Math.floor(Math.random() * topResults.length)];
+    // Pick a random video from the top 20 results
+    const randomVideo = videos[Math.floor(Math.random() * videos.length)];
 
     return NextResponse.json({
-      id: randomVideo.videoId,
-      title: randomVideo.title,
+      id: randomVideo.id.videoId,
+      title: randomVideo.snippet.title,
       cefr: cefr || 'Any',
       grammar: grammar ? [grammar] : [],
       format: format || 'Any'
