@@ -1,6 +1,36 @@
 import { NextResponse } from 'next/server';
 
+// Simple in-memory rate limiter (per serverless container)
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 15; // 15 requests per minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = rateLimitMap.get(ip) || [];
+  
+  // Clean up old timestamps
+  const validTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
+  
+  if (validTimestamps.length >= MAX_REQUESTS_PER_WINDOW) {
+    rateLimitMap.set(ip, validTimestamps);
+    return true;
+  }
+  
+  validTimestamps.push(now);
+  rateLimitMap.set(ip, validTimestamps);
+  return false;
+}
+
 export async function GET(request: Request) {
+  // Extract IP address from headers
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown-ip';
+  
+  if (isRateLimited(ip)) {
+    console.warn(`Rate limit exceeded for IP: ${ip}`);
+    return NextResponse.json({ error: 'Too Many Requests. Please wait a minute.' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const cefr = searchParams.get('cefr') || '';
   const grammar = searchParams.get('grammar') || '';
