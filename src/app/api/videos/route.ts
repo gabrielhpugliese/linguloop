@@ -95,7 +95,8 @@ const FORMAT_KEYWORDS: Record<string, string> = {
       title: randomVideo.snippet.title,
       cefr: cefr || 'Any',
       grammar: grammar ? [grammar] : [],
-      format: format || 'Any'
+      format: format || 'Any',
+      language: language
     });
 
   } catch (error) {

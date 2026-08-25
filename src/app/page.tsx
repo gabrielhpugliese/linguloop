@@ -5,7 +5,8 @@ import {
   Box, Container, Typography, Paper, 
   Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
   FormGroup, Checkbox, ToggleButton, ToggleButtonGroup, Button,
-  TextField, Switch, Grid, Chip, Tabs, Tab, Select, MenuItem
+  TextField, Switch, Grid, Chip, Tabs, Tab, Select, MenuItem,
+  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, ListItemButton, Divider
 } from '@mui/material';
 const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const supportedLanguages = ['German', 'English', 'Spanish', 'Portuguese'];
@@ -63,6 +64,7 @@ interface VideoData {
   cefr: string;
   grammar: string[];
   format: string;
+  language?: string;
 }
 
 export default function Home() {
@@ -79,6 +81,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [notes, setNotes] = useState<string>('');
   const [blindCorrection, setBlindCorrection] = useState<boolean>(false);
+  const [watchHistory, setWatchHistory] = useState<VideoData[]>([]);
+  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('linguloop_history');
+    if (savedHistory) {
+      try {
+        setWatchHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('Failed to parse history');
+      }
+    }
+  }, []);
 
   // Load random video initially or when 'Next Random Video' is clicked
   const loadRandomVideo = async () => {
@@ -95,6 +110,12 @@ export default function Home() {
       
       const data = await res.json();
       setCurrentVideo(data);
+      
+      setWatchHistory(prev => {
+        const newHistory = [data, ...prev.filter(v => v.id !== data.id)].slice(0, 50); // Keep last 50
+        localStorage.setItem('linguloop_history', JSON.stringify(newHistory));
+        return newHistory;
+      });
     } catch (error) {
       console.error(error);
       alert("No videos match the selected filters or there was an error fetching from YouTube.");
@@ -258,6 +279,16 @@ export default function Home() {
               >
                 {isLoading ? 'Searching YouTube...' : 'Next Random Video'}
               </Button>
+
+              <Button 
+                variant="outlined" 
+                color="secondary" 
+                fullWidth 
+                sx={{ mt: 1, py: 1, fontWeight: 'bold' }}
+                onClick={() => setIsLibraryOpen(true)}
+              >
+                My Library & Notes ({watchHistory.length})
+              </Button>
             </Paper>
 
             {/* 300x250 Ad Placeholder */}
@@ -331,6 +362,52 @@ export default function Home() {
           )}
         </Grid>
       </Grid>
+      
+      {/* Library Modal */}
+      <Dialog open={isLibraryOpen} onClose={() => setIsLibraryOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', color: 'primary.main' }}>My Library & Notes</DialogTitle>
+        <DialogContent dividers>
+          {watchHistory.length === 0 ? (
+            <Typography color="text.secondary">You haven't watched any videos yet.</Typography>
+          ) : (
+            <List>
+              {watchHistory.map((video) => {
+                const hasNotes = !!localStorage.getItem(`notes_${video.id}`);
+                return (
+                  <React.Fragment key={video.id}>
+                    <ListItem disablePadding>
+                      <ListItemButton onClick={() => {
+                        setCurrentVideo(video);
+                        setIsLibraryOpen(false);
+                      }}>
+                        <ListItemText 
+                          primary={video.title} 
+                          secondary={`Language: ${video.language || 'German'} | CEFR: ${video.cefr || 'Any'}`} 
+                        />
+                        {hasNotes && (
+                          <Chip label="📝 Notes" size="small" color="primary" variant="outlined" />
+                        )}
+                      </ListItemButton>
+                    </ListItem>
+                    <Divider />
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button color="error" onClick={() => {
+            if(window.confirm('Are you sure you want to clear your history? This will NOT delete your notes.')) {
+              setWatchHistory([]);
+              localStorage.removeItem('linguloop_history');
+            }
+          }}>
+            Clear History
+          </Button>
+          <Button onClick={() => setIsLibraryOpen(false)} color="inherit">Close</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
