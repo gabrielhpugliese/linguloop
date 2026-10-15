@@ -15,7 +15,7 @@ export default function PrivacyPage() {
 
       <p>
         This policy explains what happens to your data when you use LinguLoop at linguloop.com. We keep it as
-        short and plain as we can. LinguLoop is operated by Gabriel Pugliese. You can reach us at{' '}
+        short and plain as we can. You can reach us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
 
@@ -161,7 +161,7 @@ export default function PrivacyPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions about this policy? Email Gabriel Pugliese at{' '}
+        Questions about this policy? Email us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
     </>

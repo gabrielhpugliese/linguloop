@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FEEDBACK_HREF, pageMetadata } from '@/lib/site';
+import AdSlot from '@/components/ads/AdSlot';
+import { ADSENSE_SLOT_TOP, FEEDBACK_HREF, pageMetadata } from '@/lib/site';
 
 export const metadata: Metadata = pageMetadata(
   'About',
@@ -11,6 +12,7 @@ export const metadata: Metadata = pageMetadata(
 export default function AboutPage() {
   return (
     <>
+      <AdSlot slot={ADSENSE_SLOT_TOP} variant="top" />
       <h1>About LinguLoop</h1>
       <p>
         LinguLoop is a free website that finds videos for people who are learning a language. You tell it which
@@ -100,7 +102,7 @@ export default function AboutPage() {
 
       <h2>Who makes it</h2>
       <p>
-        LinguLoop is built and run by Gabriel Pugliese, as an independent project for language learners.
+        LinguLoop is an independent project, built for language learners.
       </p>
 
       <h2>Tell us what you think</h2>

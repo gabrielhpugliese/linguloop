@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useSyncExternalStore } from 'react';
 import {
   Alert, Box, Container, Typography, Paper,
   FormControlLabel, TextField, Switch, Grid, Tooltip
@@ -18,7 +18,10 @@ import LibraryBottomSheet from '@/components/library/LibraryBottomSheet';
 import { videoTitle } from '@/components/library/LibraryVideoItem';
 import { LIBRARY_PANEL_ID } from '@/components/library/LibraryPanel';
 import AdSlot from '@/components/ads/AdSlot';
-import { ADSENSE_SLOT_SIDEBAR } from '@/lib/site';
+import { ADSENSE_SLOT_SIDEBAR, ADSENSE_SLOT_TOP } from '@/lib/site';
+
+/** No-op subscription: `useSyncExternalStore` is only used to tell server/hydration (false) from client (true). */
+const subscribeNever = () => () => {};
 
 /** Failed /api/videos response; `code` is the API's error code, if it sent one. */
 class LoadError extends Error {
@@ -43,6 +46,15 @@ export default function Home() {
   // Desktop gets a side panel that pushes the video; smaller screens get a bottom sheet.
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  // The two columns stack below `md`. The sidebar ad sits under the filters when side by side
+  // and after the notes when stacked. Exactly one AdSlot is ever mounted (two with one hidden
+  // by CSS would still request an ad), and none until the client has hydrated and the query
+  // is known, so the server HTML and the first client render match (both without the ad).
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const sidebarAd = hydrated ? (
+    <AdSlot slot={ADSENSE_SLOT_SIDEBAR} variant="sidebar" />
+  ) : null;
   const isLibraryOpen = library.ui.open;
   const libraryButtonRef = useRef<HTMLButtonElement>(null);
   const videoAreaRef = useRef<HTMLDivElement>(null);
@@ -110,6 +122,8 @@ export default function Home() {
   };
 
   return (
+    <>
+    <AdSlot slot={ADSENSE_SLOT_TOP} variant="top" />
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Grid container spacing={4}>
         {/* Left Column */}
@@ -122,8 +136,9 @@ export default function Home() {
               </Alert>
             )}
 
-            {/* Responsive ad unit: separated from the controls by its own margin, divider and label. */}
-            <AdSlot slot={ADSENSE_SLOT_SIDEBAR} variant="sidebar" />
+            {/* Responsive ad unit: separated from the controls by its own margin, divider and label.
+                Side-by-side layout only; stacked layouts render it after the notes instead. */}
+            {isMdUp && sidebarAd}
           </Box>
         </Grid>
 
@@ -202,6 +217,9 @@ export default function Home() {
               />
             )}
           </Box>
+
+          {/* Stacked (phone/tablet portrait): after the notes, not between filters and player. */}
+          {!isMdUp && sidebarAd}
         </Grid>
       </Grid>
 
@@ -214,5 +232,6 @@ export default function Home() {
         />
       )}
     </Container>
+    </>
   );
 }

@@ -3,10 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import ThemeRegistry from "@/components/ThemeRegistry";
-import AdSlot from "@/components/ads/AdSlot";
 import SiteFooter from "@/components/SiteFooter";
 import {
-  ADSENSE_CLIENT, ADSENSE_SLOT_TOP, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL,
+  ADSENSE_CLIENT, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL,
 } from "@/lib/site";
 
 const geistSans = Geist({
@@ -53,7 +52,6 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="site-body">
         <ThemeRegistry>
-          <AdSlot slot={ADSENSE_SLOT_TOP} variant="top" />
           <div className="site-main">{children}</div>
           <SiteFooter />
         </ThemeRegistry>
