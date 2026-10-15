@@ -34,3 +34,139 @@ a {
   border: 1px solid var(--border);
   border-radius: 12px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Ads                                                                  */
+/* ------------------------------------------------------------------ */
+.ad-slot {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* An unfilled unit collapses completely, label included. */
+.ad-slot:has(ins[data-ad-status="unfilled"]) {
+  display: none;
+}
+
+.ad-slot__label {
+  font-size: 0.7rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(224, 224, 224, 0.5);
+  margin-bottom: 6px;
+}
+
+.ad-slot__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: #333;
+  border: 1px solid #555;
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.ad-slot--top {
+  max-width: 970px;
+  margin: 0 auto;
+  padding: 12px 16px;
+}
+.ad-slot--top .ad-slot__placeholder {
+  min-height: 90px;
+}
+
+/* Sidebar: well apart from the filter controls and "Next video" (accidental-click policy),
+   with its own divider so it never reads as part of the panel. */
+.ad-slot--sidebar {
+  margin-top: 40px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ad-slot--sidebar .ad-slot__placeholder {
+  min-height: 250px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Site chrome and text pages                                           */
+/* ------------------------------------------------------------------ */
+.site-body {
+  display: flex;
+  flex-direction: column;
+}
+.site-main {
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+.site-footer {
+  flex-shrink: 0;
+  margin-top: 48px;
+  padding: 24px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+  color: rgba(224, 224, 224, 0.7);
+  text-align: center;
+}
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+}
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.subpage-header {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 0;
+}
+.subpage-header a {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.prose {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 0;
+  line-height: 1.7;
+}
+.prose h1 {
+  font-size: 2rem;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+.prose h2 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  margin: 32px 0 8px;
+}
+.prose p,
+.prose ul {
+  margin-bottom: 12px;
+}
+.prose ul {
+  padding-left: 24px;
+}
+.prose li {
+  margin-bottom: 4px;
+}
+.prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.prose .meta {
+  color: rgba(224, 224, 224, 0.6);
+  font-size: 0.9rem;
+}

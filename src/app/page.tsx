@@ -17,6 +17,8 @@ import LibrarySidePanel from '@/components/library/LibrarySidePanel';
 import LibraryBottomSheet from '@/components/library/LibraryBottomSheet';
 import { videoTitle } from '@/components/library/LibraryVideoItem';
 import { LIBRARY_PANEL_ID } from '@/components/library/LibraryPanel';
+import AdSlot from '@/components/ads/AdSlot';
+import { ADSENSE_SLOT_SIDEBAR } from '@/lib/site';
 
 /** Failed /api/videos response; `code` is the API's error code, if it sent one. */
 class LoadError extends Error {
@@ -120,22 +122,8 @@ export default function Home() {
               </Alert>
             )}
 
-            {/* 300x250 Ad Placeholder */}
-            <Box 
-              sx={{ 
-                width: 300, 
-                height: 250, 
-                backgroundColor: '#333', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                margin: '0 auto',
-                border: '1px solid #555',
-                color: '#888'
-              }}
-            >
-              300x250 Medium Rectangle Ad
-            </Box>
+            {/* Responsive ad unit: separated from the controls by its own margin, divider and label. */}
+            <AdSlot slot={ADSENSE_SLOT_SIDEBAR} variant="sidebar" />
           </Box>
         </Grid>
 
@@ -160,7 +148,7 @@ export default function Home() {
                     <Box sx={{ position: 'relative', paddingTop: '56.25%' }}>
                       <iframe
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                        src={`https://www.youtube.com/embed/${currentVideo.id}`}
+                        src={`https://www.youtube-nocookie.com/embed/${currentVideo.id}`}
                         title={videoTitle(currentVideo)}
                         frameBorder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

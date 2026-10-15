@@ -38,7 +38,8 @@ export async function GET(request: Request) {
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown-ip';
   
   if (isRateLimited(ip)) {
-    console.warn(`Rate limit exceeded for IP: ${ip}`);
+    // Deliberately no IP in the log: the address is only used as an in-memory rate-limit key.
+    console.warn('Rate limit exceeded');
     return NextResponse.json({ error: 'Too Many Requests. Please wait a minute.' }, { status: 429 });
   }
 

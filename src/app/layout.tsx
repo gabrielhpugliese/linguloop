@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ThemeRegistry from "@/components/ThemeRegistry";
+import AdSlot from "@/components/ads/AdSlot";
+import SiteFooter from "@/components/SiteFooter";
+import {
+  ADSENSE_CLIENT, ADSENSE_SLOT_TOP, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL,
+} from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +19,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const TITLE = `${SITE_NAME}: ${SITE_TAGLINE}`;
+
 export const metadata: Metadata = {
-  title: "LinguLoop",
-  description: "Video-based German language learning MVP",
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    url: "/",
+    title: TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  // AdSense site verification; only present once the publisher ID is configured.
+  ...(ADSENSE_CLIENT ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
 };
 
 export default function RootLayout({
@@ -25,15 +51,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
+      <body className="site-body">
         <ThemeRegistry>
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '16px 0', background: '#000' }}>
-            <div style={{ width: 728, height: 90, background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', border: '1px solid #555' }}>
-              728x90 Leaderboard Ad
-            </div>
-          </div>
-          {children}
+          <AdSlot slot={ADSENSE_SLOT_TOP} variant="top" />
+          <div className="site-main">{children}</div>
+          <SiteFooter />
         </ThemeRegistry>
+        {ADSENSE_CLIENT && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );
