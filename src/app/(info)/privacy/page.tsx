@@ -74,6 +74,18 @@ export default function PrivacyPage() {
         cache for no more than seven days.
       </p>
 
+      <h2>Analytics</h2>
+      <p>
+        We use Vercel Web Analytics to understand, in aggregate, how the site is used. It does not use cookies
+        and does not track you across different websites. It records anonymous page-view data, such as the
+        page address, the referring page, your browser, operating system and device type, and your country.
+        We do not combine this with your notes, history or filter choices. See Vercel&apos;s{' '}
+        <a href="https://vercel.com/docs/analytics/privacy-policy" rel="noopener noreferrer">
+          Web Analytics privacy documentation
+        </a>{' '}
+        for details.
+      </p>
+
       <h2>YouTube</h2>
       <p>
         Videos are shown with an embedded YouTube player, which is provided by Google. We use YouTube&apos;s
