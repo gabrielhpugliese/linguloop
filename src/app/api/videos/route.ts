@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
-import { buildSummary, parseSelectionParams, toSearchRequest } from '@/lib/catalog';
+import { buildSummary, parseSelectionParams, toFallbackSearchRequests, toSearchRequest } from '@/lib/catalog';
+import { parseExcludedIds, pickFromRequests } from '@/lib/video-pick';
 import {
   NoVideosFoundError,
   YouTubeApiError,
   YouTubeConfigError,
   searchVideos,
 } from '@/lib/youtube-search';
+
+/** Extra searches (each may cost 100 quota units) tried when everything found was already watched. */
+const MAX_FALLBACK_SEARCHES = 2;
 
 // Simple in-memory rate limiter (per serverless container)
 const rateLimitMap = new Map<string, number[]>();
@@ -44,13 +48,38 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
   const selection = parsed.selection;
+  // Videos the client already has (history + current). Applied after the cached search, so it
+  // never changes the cache key or costs quota; invalid ids are ignored, the count is capped.
+  const excluded = parseExcludedIds(new URL(request.url).searchParams.getAll('exclude'));
 
   try {
     // Cached per search request, derived from validated ids (see src/lib/youtube-search.ts).
-    const videos = await searchVideos(toSearchRequest(selection));
+    const first = toSearchRequest(selection);
+    // Only the "watch" goal has fallbacks: other content types for the same selection.
+    const requests = [first, ...toFallbackSearchRequests(selection, first, MAX_FALLBACK_SEARCHES)];
 
-    // Random pick happens outside the cache, so every request can get a different video.
-    const randomVideo = videos[Math.floor(Math.random() * videos.length)];
+    // Random pick happens outside the cache (minus excluded ids), so every request can get a
+    // different video. Fallback searches only run if the previous list was fully excluded.
+    const picked = await pickFromRequests(
+      requests,
+      async (searchRequest) => {
+        try {
+          return (await searchVideos(searchRequest)).videos;
+        } catch (error) {
+          // A fallback type without results just counts as "nothing new there".
+          if (searchRequest !== first && error instanceof NoVideosFoundError) return [];
+          throw error;
+        }
+      },
+      excluded,
+    );
+    if (!picked) {
+      return NextResponse.json(
+        { code: 'ALL_SEEN', error: "You've watched all our picks for this topic. Try another topic or level." },
+        { status: 404 },
+      );
+    }
+    const randomVideo = picked.video;
 
     return NextResponse.json({
       id: randomVideo.id,
@@ -63,7 +92,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     if (error instanceof NoVideosFoundError) {
-      return NextResponse.json({ error: 'No videos found' }, { status: 404 });
+      return NextResponse.json({ code: 'NO_RESULTS', error: 'No videos found' }, { status: 404 });
     }
     if (error instanceof YouTubeConfigError) {
       console.error('YOUTUBE_API_KEY is not set in environment variables.');

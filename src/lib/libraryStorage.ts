@@ -302,6 +302,17 @@ export function getSortedNotes(notes: Record<string, NoteEntry>): NoteEntry[] {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+/**
+ * Ids of videos the user already saw: the one playing now (it may not be in history,
+ * e.g. when picked from the Library), then history, most recent first. Safe to call from
+ * event handlers and effects; returns [] on the server.
+ */
+export function getWatchedVideoIds(currentVideoId?: string): string[] {
+  ensureLoaded();
+  const ids = snapshot.history.map((entry) => entry.id);
+  return currentVideoId ? [currentVideoId, ...ids.filter((id) => id !== currentVideoId)] : ids;
+}
+
 // ---------------------------------------------------------------------------
 // Mutations (call from event handlers / async callbacks only)
 // ---------------------------------------------------------------------------

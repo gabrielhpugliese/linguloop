@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import type { SearchRequest } from './catalog';
+import { cacheBucket, isTooOld } from './cache-age';
 
 /**
  * Cached YouTube Data API v3 search.
@@ -10,11 +11,24 @@ import type { SearchRequest } from './catalog';
  * src/lib/catalog.ts, so callers cannot create arbitrary cache entries.
  * On Vercel that cache is shared by all function instances and survives redeploys.
  * Only the result list is cached; callers pick a random entry per request.
+ *
+ * Maximum age: YouTube's API policy requires refreshing or deleting stored data within
+ * 30 days, so nothing older than 7 days is ever served (see src/lib/cache-age.ts). The
+ * cache key contains a 7-day time bucket: stale-while-revalidate (24h) and stale-on-error
+ * only ever apply to an entry of the current bucket, and an entry of an earlier bucket is
+ * never read again, so after a bucket change a fresh search is required (and if YouTube
+ * fails, the request fails instead of falling back to old data).
  */
 
 export interface SearchVideo {
   id: string;
   title: string;
+}
+
+export interface SearchResult {
+  videos: SearchVideo[];
+  /** Epoch ms when YouTube was asked; stored with the cached list. */
+  fetchedAt: number;
 }
 
 /** Thrown when YOUTUBE_API_KEY is missing. */
@@ -23,10 +37,12 @@ export class YouTubeConfigError extends Error {}
 export class YouTubeApiError extends Error {}
 /** Thrown when the search succeeds but returns no videos. Thrown, so it is never cached. */
 export class NoVideosFoundError extends Error {}
+/** Thrown if a cached list is somehow older than the 7-day maximum. Should be unreachable. */
+export class CacheTooOldError extends Error {}
 
 /** Tag on every cached search, for manual invalidation with `revalidateTag`. */
 export const YOUTUBE_SEARCH_CACHE_TAG = 'youtube-search';
-const SEARCH_TTL_SECONDS = 60 * 60 * 24; // 24h; after that the stale list is served while refreshing
+const SEARCH_TTL_SECONDS = 60 * 60 * 24; // 24h; after that the stale list is served while refreshing (within the 7-day bucket)
 const MAX_RESULTS = 50; // same 100-unit cost as 20, more variety per cached query
 
 const HTML_ENTITIES: Record<string, string> = {
@@ -94,22 +110,29 @@ async function fetchYouTubeSearch({ query, relevanceLanguage, shortOnly }: Searc
  * The request is built from validated catalog ids only (including the query text, so
  * editing a catalog phrase starts a fresh entry); the API key is read from env inside
  * the function and is never part of the key, tags, or cached value.
- * Thrown errors (API errors, empty results) are not cached.
+ * `bucket` (see `cacheBucket`) is a function argument, hence part of the key: it is what
+ * enforces the 7-day maximum age. Thrown errors (API errors, empty results) are not cached.
  */
 const searchVideosCached = unstable_cache(
-  async (request: SearchRequest): Promise<SearchVideo[]> => {
+  async (request: SearchRequest, bucket: number): Promise<SearchResult> => {
     // Only runs on a cache miss / refresh: visible in logs as the quota spend.
     console.info(
-      `YouTube search cache miss (100 quota units): "${request.query}" [${request.relevanceLanguage}${request.shortOnly ? ', short' : ''}]`,
+      `YouTube search cache miss (100 quota units): "${request.query}" [${request.relevanceLanguage}${request.shortOnly ? ', short' : ''}] week-bucket ${bucket}`,
     );
     const videos = await fetchYouTubeSearch(request);
     if (videos.length === 0) throw new NoVideosFoundError(`No videos for "${request.query}"`);
-    return videos;
+    return { videos, fetchedAt: Date.now() };
   },
-  ['youtube-search', 'v2'],
+  ['youtube-search', 'v3'],
   { revalidate: SEARCH_TTL_SECONDS, tags: [YOUTUBE_SEARCH_CACHE_TAG] },
 );
 
-export function searchVideos(request: SearchRequest): Promise<SearchVideo[]> {
-  return searchVideosCached(request);
+/** `now` is injectable for tests. */
+export async function searchVideos(request: SearchRequest, now: number = Date.now()): Promise<SearchResult> {
+  const result = await searchVideosCached(request, cacheBucket(now));
+  // Defence in depth: the bucket already guarantees this; never serve old data even if it breaks.
+  if (isTooOld(result.fetchedAt, now)) {
+    throw new CacheTooOldError(`Cached search for "${request.query}" is older than the allowed maximum`);
+  }
+  return result;
 }

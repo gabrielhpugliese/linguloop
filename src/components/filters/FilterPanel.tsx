@@ -39,13 +39,15 @@ export interface FilterPanelProps {
    * respects them).
    */
   onNext: (params: URLSearchParams) => void;
+  /** Called when the user changes any filter. */
+  onSelectionChange?: () => void;
   /** Disables the button and shows the searching label. */
   isLoading: boolean;
 }
 
 const sectionLabelSx = { fontSize: '0.8rem', mb: 0.75, display: 'block' } as const;
 
-export default function FilterPanel({ onNext, isLoading }: FilterPanelProps) {
+export default function FilterPanel({ onNext, onSelectionChange, isLoading }: FilterPanelProps) {
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION);
   const started = useRef(false);
 
@@ -62,6 +64,7 @@ export default function FilterPanel({ onNext, isLoading }: FilterPanelProps) {
   const update = (next: Selection) => {
     setSelection(next);
     saveSelection(next);
+    onSelectionChange?.();
   };
 
   const goal = getGoal(selection.goal);

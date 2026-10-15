@@ -2,13 +2,13 @@
 
 import React, { useState, useRef } from 'react';
 import {
-  Box, Container, Typography, Paper,
+  Alert, Box, Container, Typography, Paper,
   FormControlLabel, TextField, Switch, Grid, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import {
-  getSortedNotes, recordWatch, setLibraryOpen, setNoteText, toVideoData, useLibrary, type VideoData
+  getSortedNotes, getWatchedVideoIds, recordWatch, setLibraryOpen, setNoteText, toVideoData, useLibrary, type VideoData
 } from '@/lib/libraryStorage';
 import FilterPanel from '@/components/filters/FilterPanel';
 import VideoContextLine from '@/components/filters/VideoContextLine';
@@ -18,11 +18,20 @@ import LibraryBottomSheet from '@/components/library/LibraryBottomSheet';
 import { videoTitle } from '@/components/library/LibraryVideoItem';
 import { LIBRARY_PANEL_ID } from '@/components/library/LibraryPanel';
 
+/** Failed /api/videos response; `code` is the API's error code, if it sent one. */
+class LoadError extends Error {
+  constructor(readonly code?: string) {
+    super(`Failed to fetch${code ? ` (${code})` : ''}`);
+  }
+}
+
 export default function Home() {
   const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
   // Starts true: the first video is requested on mount.
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hideNotes, setHideNotes] = useState<boolean>(false);
+  // Set when the server says every pick for the current filters was already watched.
+  const [allSeen, setAllSeen] = useState<boolean>(false);
 
   // History, notes and Library panel state live in localStorage (see src/lib/libraryStorage.ts).
   const library = useLibrary();
@@ -40,16 +49,29 @@ export default function Home() {
   // filters). State is only updated in promise callbacks, so this is safe to start from an effect.
   const loadVideo = (params: URLSearchParams) => {
     setIsLoading(true);
+    // Tell the server what to skip: the playing video plus the watch history. This only
+    // narrows the random pick on the server; it does not affect the YouTube search cache.
+    const watchedIds = getWatchedVideoIds(currentVideo?.id);
+    if (watchedIds.length > 0) params.set('exclude', watchedIds.join(','));
     return fetch(`/api/videos?${params.toString()}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { code?: string } | null;
+          throw new LoadError(body?.code);
+        }
         return res.json() as Promise<VideoData>;
       })
       .then((data) => {
+        setAllSeen(false);
         setCurrentVideo(data);
         recordWatch(data);
       })
       .catch((error) => {
+        if (error instanceof LoadError && error.code === 'ALL_SEEN') {
+          // Friendly inline message instead of an alert; the current video stays.
+          setAllSeen(true);
+          return;
+        }
         console.error(error);
         alert("No videos match the selected filters or there was an error fetching from YouTube.");
       })
@@ -91,7 +113,12 @@ export default function Home() {
         {/* Left Column */}
         <Grid size={{ xs: 12, md: 4, lg: 3.6 }}>
           <Box sx={{ position: 'sticky', top: 24 }}>
-            <FilterPanel isLoading={isLoading} onNext={loadVideo} />
+            <FilterPanel isLoading={isLoading} onNext={loadVideo} onSelectionChange={() => setAllSeen(false)} />
+            {allSeen && (
+              <Alert severity="info" sx={{ mt: -2, mb: 3 }}>
+                You&apos;ve watched all our picks for this topic. Try another topic or level.
+              </Alert>
+            )}
 
             {/* 300x250 Ad Placeholder */}
             <Box 

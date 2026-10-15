@@ -759,6 +759,17 @@ const WATCH_EXCLUDED: Partial<Record<LevelId, readonly ListeningTypeId[]>> = {
   C2: ['cartoons-stories'],
 };
 
+/** Listening content types "Just watch something" may pick for a level. */
+function watchTypeIds(level: LevelId): ListeningTypeId[] {
+  const excluded = WATCH_EXCLUDED[level] ?? [];
+  return LISTENING_TYPES.map(([id]) => id).filter((id) => !excluded.includes(id));
+}
+
+/** "Just watch something" is a listening search for one content type, at learner speed. */
+function watchSelection(sel: Selection, typeId: ListeningTypeId): Selection {
+  return { ...sel, goal: 'listening', option: typeId, speed: 'learner', short: false };
+}
+
 /**
  * Builds the YouTube request for a validated selection. The only randomness is the
  * "Just watch something" goal, which picks a learner-friendly listening content type
@@ -766,15 +777,48 @@ const WATCH_EXCLUDED: Partial<Record<LevelId, readonly ListeningTypeId[]>> = {
  * for tests.
  */
 export function toSearchRequest(sel: Selection, random: () => number = Math.random): SearchRequest {
-  const content = CONTENT[sel.language];
-  let s = sel;
   if (sel.goal === 'watch') {
-    const excluded = WATCH_EXCLUDED[sel.level] ?? [];
-    const types = LISTENING_TYPES.filter(([id]) => !excluded.includes(id));
-    const pick = types[Math.min(types.length - 1, Math.floor(random() * types.length))][0];
-    s = { ...sel, goal: 'listening', option: pick, speed: 'learner', short: false };
+    const types = watchTypeIds(sel.level);
+    const pick = types[Math.min(types.length - 1, Math.floor(random() * types.length))];
+    return buildSearchRequest(watchSelection(sel, pick));
   }
+  return buildSearchRequest(sel);
+}
 
+function sameSearchRequest(a: SearchRequest, b: SearchRequest): boolean {
+  return a.query === b.query && a.relevanceLanguage === b.relevanceLanguage && a.shortOnly === b.shortOnly;
+}
+
+/**
+ * Other searches to try when everything from `tried` was already watched: only for the
+ * "watch" goal (other goals are specific topics, so they get none). Returns up to `limit`
+ * requests for different random content types. Each uncached one costs a YouTube search,
+ * hence the small limit.
+ */
+export function toFallbackSearchRequests(
+  sel: Selection,
+  tried: SearchRequest,
+  limit: number,
+  random: () => number = Math.random,
+): SearchRequest[] {
+  if (sel.goal !== 'watch') return [];
+  const candidates = watchTypeIds(sel.level).map((id) => buildSearchRequest(watchSelection(sel, id)));
+  // Fisher-Yates shuffle, so the fallbacks are random like the first pick.
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.floor(random() * (i + 1)));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const result: SearchRequest[] = [];
+  for (const candidate of candidates) {
+    if (result.length >= limit) break;
+    if (sameSearchRequest(candidate, tried) || result.some((r) => sameSearchRequest(r, candidate))) continue;
+    result.push(candidate);
+  }
+  return result;
+}
+
+function buildSearchRequest(s: Selection): SearchRequest {
+  const content = CONTENT[s.language];
   const option = findOption(s);
   let phrase: string;
   let levelHint = true;
