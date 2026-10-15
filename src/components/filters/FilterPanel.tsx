@@ -1,28 +1,37 @@
 'use client';
 
-import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  Box, Button, ButtonBase, Chip, FormControl, FormControlLabel, FormLabel,
+  Box, Button, ButtonBase, Chip, Collapse, FormControl, FormControlLabel, FormLabel,
   MenuItem, Paper, Select, Switch, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   DEFAULT_SELECTION, GOALS, LANGUAGES, LEVELS, SPEEDS,
-  getGoal, getOptionGroups, sanitizeSelection, selectionToParams,
+  buildSummary, getGoal, getOptionGroups, sanitizeSelection, selectionToParams,
   withGoal, withLanguage, withLevel,
   type LanguageId, type LevelId, type Selection, type Speed,
 } from '@/lib/catalog';
 
 const STORAGE_KEY = 'linguloop_filters';
 
-function loadSelection(): Selection {
+/** `saved` is false on a first visit (nothing stored, or storage unreadable). */
+function loadSelection(): { selection: Selection; saved: boolean } {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? sanitizeSelection(JSON.parse(raw)) : DEFAULT_SELECTION;
+    return raw
+      ? { selection: sanitizeSelection(JSON.parse(raw)), saved: true }
+      : { selection: DEFAULT_SELECTION, saved: false };
   } catch {
-    return DEFAULT_SELECTION;
+    return { selection: DEFAULT_SELECTION, saved: false };
   }
 }
+
+/** No-op subscription: `useSyncExternalStore` is only used to tell server/hydration (false) from client (true). */
+const subscribeNever = () => () => {};
+
+const FILTER_BODY_ID = 'filter-panel-body';
 
 function saveSelection(selection: Selection) {
   try {
@@ -43,12 +52,21 @@ export interface FilterPanelProps {
   onSelectionChange?: () => void;
   /** Disables the button and shows the searching label. */
   isLoading: boolean;
+  /** Shown right under the "Next video" button on phones (where the panel is collapsed). */
+  notice?: React.ReactNode;
 }
 
 const sectionLabelSx = { fontSize: '0.8rem', mb: 0.75, display: 'block' } as const;
 
-export default function FilterPanel({ onNext, onSelectionChange, isLoading }: FilterPanelProps) {
+export default function FilterPanel({ onNext, onSelectionChange, isLoading, notice }: FilterPanelProps) {
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION);
+  // Phones (below `md`) get a collapsible layout. `expanded` stays null until the saved filters
+  // have been read on mount (first visit: expanded, later visits: collapsed), and the layout is
+  // only chosen after hydration, so the server HTML and the first client render match.
+  const [expanded, setExpanded] = useState<boolean | null>(null);
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const started = useRef(false);
 
   // localStorage is only read in an effect, so server and first client render match.
@@ -56,8 +74,9 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading }: Fi
   useEffect(() => {
     if (started.current) return; // StrictMode runs effects twice in development
     started.current = true;
-    const restored = loadSelection();
+    const { selection: restored, saved } = loadSelection();
     setSelection(restored);
+    setExpanded(!saved);
     start(restored);
   }, []);
 
@@ -73,12 +92,32 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading }: Fi
   const toggleOption = (id: string) =>
     update({ ...selection, option: selection.option === id ? '' : id });
 
-  return (
-    <Paper className="glass-panel" sx={{ p: 2, mb: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
-        LinguLoop Filters
-      </Typography>
+  const compact = hydrated && !isMdUp;
 
+  const handleNext = () => {
+    if (compact) {
+      // Collapse and remember the selection, so the next visit starts collapsed.
+      setExpanded(false);
+      saveSelection(selection);
+    }
+    onNext(selectionToParams(selection));
+  };
+
+  const nextButton = (
+    <Button
+      variant="contained"
+      color="primary"
+      fullWidth
+      sx={{ mt: compact ? 0 : 1, py: 1.5, fontWeight: 'bold' }}
+      onClick={handleNext}
+      disabled={isLoading}
+    >
+      {isLoading ? 'Searching YouTube...' : 'Next video'}
+    </Button>
+  );
+
+  const fields = (
+    <>
       {/* Language */}
       <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
         <FormLabel color="secondary" id="filter-language-label">Language</FormLabel>
@@ -242,16 +281,66 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading }: Fi
         </Box>
       )}
 
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        sx={{ mt: 1, py: 1.5, fontWeight: 'bold' }}
-        onClick={() => onNext(selectionToParams(selection))}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Searching YouTube...' : 'Next video'}
-      </Button>
+    </>
+  );
+
+  if (!hydrated) {
+    // Server / hydration render. Phones get a same-height placeholder for the collapsed bar
+    // (so nothing jumps once the layout is chosen); md and up get the full panel.
+    return (
+      <>
+        <Box sx={{ display: { xs: 'block', md: 'none' }, minHeight: 124, mb: 3 }} />
+        <Paper className="glass-panel" sx={{ display: { xs: 'none', md: 'block' }, p: 2, mb: 4 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
+            LinguLoop Filters
+          </Typography>
+          {fields}
+          {nextButton}
+        </Paper>
+      </>
+    );
+  }
+
+  if (compact) {
+    if (expanded === null) return <Box sx={{ minHeight: 124, mb: 3 }} />;
+    return (
+      <Box sx={{ mb: 3 }}>
+        <Paper
+          className="glass-panel"
+          sx={{ p: 1.5, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}
+        >
+          <Typography variant="body2" color="secondary" sx={{ fontWeight: 'bold', flex: 1, minWidth: 0 }}>
+            {buildSummary(selection)}
+          </Typography>
+          <Button
+            size="small"
+            aria-expanded={expanded}
+            aria-controls={FILTER_BODY_ID}
+            onClick={() => setExpanded(!expanded)}
+            sx={{ flexShrink: 0, textTransform: 'none', fontWeight: 'bold' }}
+          >
+            {expanded ? 'Done' : 'Edit'}
+            <span aria-hidden style={{ marginLeft: 4 }}>{expanded ? '\u25B4' : '\u25BE'}</span>
+          </Button>
+        </Paper>
+        {nextButton}
+        {notice && <Box sx={{ mt: 1.5 }}>{notice}</Box>}
+        <Collapse in={expanded} id={FILTER_BODY_ID}>
+          <Paper className="glass-panel" sx={{ p: 2, mt: 1.5 }}>
+            {fields}
+          </Paper>
+        </Collapse>
+      </Box>
+    );
+  }
+
+  return (
+    <Paper className="glass-panel" sx={{ p: 2, mb: 4 }}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
+        LinguLoop Filters
+      </Typography>
+      {fields}
+      {nextButton}
     </Paper>
   );
 }

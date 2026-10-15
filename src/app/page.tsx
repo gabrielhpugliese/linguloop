@@ -23,6 +23,8 @@ import { ADSENSE_SLOT_SIDEBAR, ADSENSE_SLOT_TOP } from '@/lib/site';
 /** No-op subscription: `useSyncExternalStore` is only used to tell server/hydration (false) from client (true). */
 const subscribeNever = () => () => {};
 
+const ALL_SEEN_MESSAGE = "You've watched all our picks for this topic. Try another topic or level.";
+
 /** Failed /api/videos response; `code` is the API's error code, if it sent one. */
 class LoadError extends Error {
   constructor(readonly code?: string) {
@@ -100,6 +102,8 @@ export default function Home() {
     }
   };
 
+  const allSeenAlert = <Alert severity="info">{ALL_SEEN_MESSAGE}</Alert>;
+
   const toggleLibrary = () => setLibraryOpen(!isLibraryOpen);
 
   const closeLibrary = () => {
@@ -129,11 +133,15 @@ export default function Home() {
         {/* Left Column */}
         <Grid size={{ xs: 12, md: 4, lg: 3.6 }}>
           <Box sx={{ position: 'sticky', top: 24 }}>
-            <FilterPanel isLoading={isLoading} onNext={loadVideo} onSelectionChange={() => setAllSeen(false)} />
-            {allSeen && (
-              <Alert severity="info" sx={{ mt: -2, mb: 3 }}>
-                You&apos;ve watched all our picks for this topic. Try another topic or level.
-              </Alert>
+            <FilterPanel
+              isLoading={isLoading}
+              onNext={loadVideo}
+              onSelectionChange={() => setAllSeen(false)}
+              notice={allSeen ? allSeenAlert : undefined}
+            />
+            {/* Phones show this message inside FilterPanel, right under the Next button. */}
+            {allSeen && isMdUp && (
+              <Alert severity="info" sx={{ mt: -2, mb: 3 }}>{ALL_SEEN_MESSAGE}</Alert>
             )}
 
             {/* Responsive ad unit: separated from the controls by its own margin, divider and label.
