@@ -53,7 +53,7 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="site-body">
         <ThemeRegistry>
-          <div className="site-main">{children}</div>
+          <main className="site-main">{children}</main>
           <SiteFooter />
         </ThemeRegistry>
         {ADSENSE_CLIENT && (

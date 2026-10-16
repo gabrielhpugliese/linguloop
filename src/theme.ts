@@ -31,7 +31,14 @@ const theme = createTheme({
         root: {
           backgroundImage: 'none',
           backgroundColor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
+        },
+      },
+    },
+    // Menus and popovers float over content, so they need an opaque surface.
+    MuiPopover: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#1e1e1e',
         },
       },
     },

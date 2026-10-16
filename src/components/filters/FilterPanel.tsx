@@ -44,40 +44,49 @@ function saveSelection(selection: Selection) {
 export interface FilterPanelProps {
   /**
    * Called with the /api/videos query params when "Next video" is clicked, and once on
-   * mount after the saved filters have been restored (so the first video already
-   * respects them).
+   * mount for returning visitors after the saved filters have been restored (so the first
+   * video already respects them).
    */
   onNext: (params: URLSearchParams) => void;
+  /** Called once on mount instead of `onNext` on a first visit: nothing loads until the learner has chosen. */
+  onFirstVisit?: () => void;
   /** Called when the user changes any filter. */
   onSelectionChange?: () => void;
-  /** Disables the button and shows the searching label. */
+  /** Shows the searching label; clicks are ignored until the video has loaded. */
   isLoading: boolean;
-  /** Shown right under the "Next video" button on phones (where the panel is collapsed). */
+  /** Shown right under the "Next video" button (e.g. why no new video loaded). */
   notice?: React.ReactNode;
 }
 
 const sectionLabelSx = { fontSize: '0.8rem', mb: 0.75, display: 'block' } as const;
 
-export default function FilterPanel({ onNext, onSelectionChange, isLoading, notice }: FilterPanelProps) {
+export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, isLoading, notice }: FilterPanelProps) {
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION);
   // Phones (below `md`) get a collapsible layout. `expanded` stays null until the saved filters
   // have been read on mount (first visit: expanded, later visits: collapsed), and the layout is
   // only chosen after hydration, so the server HTML and the first client render match.
   const [expanded, setExpanded] = useState<boolean | null>(null);
+  // First visit, until the first "Next video": phones show the whole panel with the button at
+  // the bottom, after the choices, instead of the summary bar.
+  const [firstRun, setFirstRun] = useState(false);
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const started = useRef(false);
 
   // localStorage is only read in an effect, so server and first client render match.
-  const start = useEffectEvent((restored: Selection) => onNext(selectionToParams(restored)));
+  const start = useEffectEvent((restored: Selection, saved: boolean) => {
+    if (saved) onNext(selectionToParams(restored));
+    else onFirstVisit?.();
+  });
   useEffect(() => {
     if (started.current) return; // StrictMode runs effects twice in development
     started.current = true;
     const { selection: restored, saved } = loadSelection();
     setSelection(restored);
     setExpanded(!saved);
-    start(restored);
+    setFirstRun(!saved);
+    start(restored, saved);
   }, []);
 
   const update = (next: Selection) => {
@@ -95,11 +104,13 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
   const compact = hydrated && !isMdUp;
 
   const handleNext = () => {
-    if (compact) {
-      // Collapse and remember the selection, so the next visit starts collapsed.
-      setExpanded(false);
-      saveSelection(selection);
-    }
+    // Not `disabled` while loading: a disabled button drops keyboard focus.
+    if (isLoading) return;
+    // Remember the selection even if it was never changed, so the next visit is not a first visit.
+    saveSelection(selection);
+    setFirstRun(false);
+    // Phones: collapse to the summary bar.
+    if (compact) setExpanded(false);
     onNext(selectionToParams(selection));
   };
 
@@ -108,25 +119,32 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
       variant="contained"
       color="primary"
       fullWidth
-      sx={{ mt: compact ? 0 : 1, py: 1.5, fontWeight: 'bold' }}
+      sx={{ mt: compact && !firstRun ? 0 : 1, py: 1.5, fontWeight: 'bold', ...(isLoading && { cursor: 'progress' }) }}
       onClick={handleNext}
-      disabled={isLoading}
+      aria-disabled={isLoading || undefined}
     >
-      {isLoading ? 'Searching YouTube...' : 'Next video'}
+      {isLoading ? 'Searching YouTube…' : 'Next video'}
     </Button>
   );
+
+  const heading = (
+    <Typography component="h2" variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+      Find a video
+    </Typography>
+  );
+
+  const noticeBlock = notice && <Box sx={{ mt: 1.5 }}>{notice}</Box>;
 
   const fields = (
     <>
       {/* Language */}
       <FormControl fullWidth sx={{ mt: 1, mb: 2 }}>
-        <FormLabel color="secondary" id="filter-language-label">Language</FormLabel>
+        <FormLabel sx={sectionLabelSx} id="filter-language-label">Language</FormLabel>
         <Select
           value={selection.language}
           size="small"
           labelId="filter-language-label"
           onChange={(e) => update(withLanguage(selection, e.target.value as LanguageId))}
-          sx={{ mt: 1 }}
         >
           {LANGUAGES.map((language) => (
             <MenuItem key={language.id} value={language.id}>
@@ -138,7 +156,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
 
       {/* Level */}
       <Box sx={{ mb: 2 }}>
-        <FormLabel color="secondary" component="div" sx={sectionLabelSx} id="filter-level-label">Level</FormLabel>
+        <FormLabel component="div" sx={sectionLabelSx} id="filter-level-label">Level</FormLabel>
         <Box role="group" aria-labelledby="filter-level-label" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
           {LEVELS.map((level) => (
             <Tooltip key={level.id} title={level.description} enterTouchDelay={300}>
@@ -157,7 +175,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
 
       {/* Goal */}
       <Box sx={{ mb: 2 }}>
-        <FormLabel color="secondary" component="div" sx={sectionLabelSx} id="filter-goal-label">
+        <FormLabel component="div" sx={sectionLabelSx} id="filter-goal-label">
           What do you want to work on?
         </FormLabel>
         <Box
@@ -205,7 +223,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
       {/* Goal options (all optional, single choice) */}
       {goal.optionsLabel && (
         <Box sx={{ mb: 2 }}>
-          <FormLabel color="secondary" component="div" sx={sectionLabelSx} id="filter-options-label">
+          <FormLabel component="div" sx={sectionLabelSx} id="filter-options-label">
             {goal.optionsLabel} (optional)
           </FormLabel>
           <Box
@@ -249,7 +267,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
       {/* Listening extras */}
       {selection.goal === 'listening' && (
         <Box sx={{ mb: 2 }}>
-          <FormLabel color="secondary" component="div" sx={sectionLabelSx} id="filter-speed-label">Speed</FormLabel>
+          <FormLabel component="div" sx={sectionLabelSx} id="filter-speed-label">Speed</FormLabel>
           <ToggleButtonGroup
             exclusive
             fullWidth
@@ -272,7 +290,6 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
             control={
               <Switch
                 checked={selection.short}
-                color="secondary"
                 onChange={(e) => update({ ...selection, short: e.target.checked })}
               />
             }
@@ -291,9 +308,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
       <>
         <Box sx={{ display: { xs: 'block', md: 'none' }, minHeight: 124, mb: 3 }} />
         <Paper className="glass-panel" sx={{ display: { xs: 'none', md: 'block' }, p: 2, mb: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
-            LinguLoop Filters
-          </Typography>
+          {heading}
           {fields}
           {nextButton}
         </Paper>
@@ -301,7 +316,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
     );
   }
 
-  if (compact) {
+  if (compact && !firstRun) {
     if (expanded === null) return <Box sx={{ minHeight: 124, mb: 3 }} />;
     return (
       <Box sx={{ mb: 3 }}>
@@ -324,7 +339,7 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
           </Button>
         </Paper>
         {nextButton}
-        {notice && <Box sx={{ mt: 1.5 }}>{notice}</Box>}
+        {noticeBlock}
         <Collapse in={expanded} id={FILTER_BODY_ID}>
           <Paper className="glass-panel" sx={{ p: 2, mt: 1.5 }}>
             {fields}
@@ -335,12 +350,11 @@ export default function FilterPanel({ onNext, onSelectionChange, isLoading, noti
   }
 
   return (
-    <Paper className="glass-panel" sx={{ p: 2, mb: 4 }}>
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }} color="primary">
-        LinguLoop Filters
-      </Typography>
+    <Paper className="glass-panel" sx={{ p: 2, mb: compact ? 3 : 4 }}>
+      {heading}
       {fields}
       {nextButton}
+      {noticeBlock}
     </Paper>
   );
 }

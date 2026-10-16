@@ -7,6 +7,14 @@
   --border: rgba(255, 255, 255, 0.1);
 }
 
+html {
+  color-scheme: dark;
+}
+
+::selection {
+  background: rgba(144, 202, 249, 0.35);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -16,7 +24,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
 }
@@ -26,11 +34,9 @@ a {
   text-decoration: none;
 }
 
-/* Glassmorphism utilities */
+/* In-page panels (filters, player, notes, library) */
 .glass-panel {
   background: var(--surface);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: 12px;
 }
