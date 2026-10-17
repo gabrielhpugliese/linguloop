@@ -6,6 +6,7 @@ import {
   MenuItem, Paper, Select, Switch, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   DEFAULT_SELECTION, GOALS, LANGUAGES, LEVELS, SPEEDS,
@@ -32,6 +33,9 @@ function loadSelection(): { selection: Selection; saved: boolean } {
 const subscribeNever = () => () => {};
 
 const FILTER_BODY_ID = 'filter-panel-body';
+
+/** Height of the collapsed phone card, reserved before hydration so nothing jumps. */
+const COMPACT_COLLAPSED_HEIGHT = 141;
 
 function saveSelection(selection: Selection) {
   try {
@@ -62,13 +66,11 @@ const sectionLabelSx = { fontSize: '0.8rem', mb: 0.75, display: 'block' } as con
 
 export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, isLoading, notice }: FilterPanelProps) {
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION);
-  // Phones (below `md`) get a collapsible layout. `expanded` stays null until the saved filters
-  // have been read on mount (first visit: expanded, later visits: collapsed), and the layout is
-  // only chosen after hydration, so the server HTML and the first client render match.
+  // Phones (below `md`) get a collapsible card: tapping its header folds the choices away,
+  // "Next video" stays visible. `expanded` stays null until the saved filters have been read
+  // on mount (first visit: expanded, later visits: collapsed), and the layout is only chosen
+  // after hydration, so the server HTML and the first client render match.
   const [expanded, setExpanded] = useState<boolean | null>(null);
-  // First visit, until the first "Next video": phones show the whole panel with the button at
-  // the bottom, after the choices, instead of the summary bar.
-  const [firstRun, setFirstRun] = useState(false);
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
@@ -85,7 +87,6 @@ export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, i
     const { selection: restored, saved } = loadSelection();
     setSelection(restored);
     setExpanded(!saved);
-    setFirstRun(!saved);
     start(restored, saved);
   }, []);
 
@@ -108,8 +109,7 @@ export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, i
     if (isLoading) return;
     // Remember the selection even if it was never changed, so the next visit is not a first visit.
     saveSelection(selection);
-    setFirstRun(false);
-    // Phones: collapse to the summary bar.
+    // Phones: fold the choices away so the video moves up.
     if (compact) setExpanded(false);
     onNext(selectionToParams(selection));
   };
@@ -119,7 +119,7 @@ export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, i
       variant="contained"
       color="primary"
       fullWidth
-      sx={{ mt: compact && !firstRun ? 0 : 1, py: 1.5, fontWeight: 'bold', ...(isLoading && { cursor: 'progress' }) }}
+      sx={{ mt: compact ? 0 : 1, py: 1.5, fontWeight: 'bold', ...(isLoading && { cursor: 'progress' }) }}
       onClick={handleNext}
       aria-disabled={isLoading || undefined}
     >
@@ -306,7 +306,7 @@ export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, i
     // (so nothing jumps once the layout is chosen); md and up get the full panel.
     return (
       <>
-        <Box sx={{ display: { xs: 'block', md: 'none' }, minHeight: 124, mb: 3 }} />
+        <Box sx={{ display: { xs: 'block', md: 'none' }, minHeight: COMPACT_COLLAPSED_HEIGHT }} />
         <Paper className="glass-panel" sx={{ display: { xs: 'none', md: 'block' }, p: 2, mb: 4 }}>
           {heading}
           {fields}
@@ -316,41 +316,56 @@ export default function FilterPanel({ onNext, onFirstVisit, onSelectionChange, i
     );
   }
 
-  if (compact && !firstRun) {
-    if (expanded === null) return <Box sx={{ minHeight: 124, mb: 3 }} />;
+  if (compact) {
+    if (expanded === null) return <Box sx={{ minHeight: COMPACT_COLLAPSED_HEIGHT }} />;
     return (
-      <Box sx={{ mb: 3 }}>
-        <Paper
-          className="glass-panel"
-          sx={{ p: 1.5, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}
-        >
-          <Typography variant="body2" color="secondary" sx={{ fontWeight: 'bold', flex: 1, minWidth: 0 }}>
-            {buildSummary(selection)}
-          </Typography>
-          <Button
-            size="small"
+      // No bottom margin: the grid's row spacing already separates it from the video.
+      <Paper className="glass-panel" sx={{ p: 2 }}>
+        {/* Disclosure pattern: the heading wraps the toggle button (a heading may not sit inside a button). */}
+        <Typography component="h2" variant="h6" sx={{ mb: 1.5 }}>
+          <ButtonBase
             aria-expanded={expanded}
             aria-controls={FILTER_BODY_ID}
             onClick={() => setExpanded(!expanded)}
-            sx={{ flexShrink: 0, textTransform: 'none', fontWeight: 'bold' }}
+            sx={(theme) => ({
+              width: '100%',
+              display: 'block',
+              textAlign: 'left',
+              font: 'inherit',
+              color: 'inherit',
+              borderRadius: 1,
+              '&.Mui-focusVisible': { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
+            })}
           >
-            {expanded ? 'Done' : 'Edit'}
-            <span aria-hidden style={{ marginLeft: 4 }}>{expanded ? '\u25B4' : '\u25BE'}</span>
-          </Button>
-        </Paper>
+            {/* Title and toggle label share the first line, so the summary gets the full width below. */}
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box component="span" sx={{ flex: 1, fontWeight: 'bold', lineHeight: 1.3 }}>Find a video</Box>
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, color: 'primary.main' }}>
+                <Typography component="span" variant="body2" sx={{ fontWeight: 'bold' }}>
+                  {expanded ? 'Hide filters' : 'Open filters'}
+                </Typography>
+                <ExpandMoreIcon
+                  aria-hidden
+                  sx={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'none' }}
+                />
+              </Box>
+            </Box>
+            <Typography component="span" variant="body2" color="secondary" sx={{ display: 'block', fontWeight: 'bold' }}>
+              {buildSummary(selection)}
+            </Typography>
+          </ButtonBase>
+        </Typography>
+        <Collapse in={expanded} id={FILTER_BODY_ID}>
+          {fields}
+        </Collapse>
         {nextButton}
         {noticeBlock}
-        <Collapse in={expanded} id={FILTER_BODY_ID}>
-          <Paper className="glass-panel" sx={{ p: 2, mt: 1.5 }}>
-            {fields}
-          </Paper>
-        </Collapse>
-      </Box>
+      </Paper>
     );
   }
 
   return (
-    <Paper className="glass-panel" sx={{ p: 2, mb: compact ? 3 : 4 }}>
+    <Paper className="glass-panel" sx={{ p: 2, mb: 4 }}>
       {heading}
       {fields}
       {nextButton}
