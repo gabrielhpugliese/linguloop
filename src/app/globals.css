@@ -136,6 +136,9 @@ a {
   padding: 24px 16px 0;
 }
 .subpage-header a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--primary);

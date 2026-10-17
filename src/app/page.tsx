@@ -18,6 +18,7 @@ import LibraryBottomSheet from '@/components/library/LibraryBottomSheet';
 import { videoTitle } from '@/components/library/LibraryVideoItem';
 import { LIBRARY_PANEL_ID } from '@/components/library/LibraryPanel';
 import AdSlot from '@/components/ads/AdSlot';
+import LogoMark from '@/components/LogoMark';
 import { ADSENSE_SLOT_SIDEBAR, ADSENSE_SLOT_TOP, SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 
 /** No-op subscription: `useSyncExternalStore` is only used to tell server/hydration (false) from client (true). */
@@ -224,7 +225,11 @@ export default function Home() {
         sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 2, md: 3 } }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 1.5, rowGap: 0.25, minWidth: 0, flex: 1 }}>
-          <Typography component="h1" sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}>
+          <Typography
+            component="h1"
+            sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}
+          >
+            <LogoMark height={24} />
             {SITE_NAME}
           </Typography>
           <Typography variant="body2" color="text.secondary">{SITE_TAGLINE}</Typography>

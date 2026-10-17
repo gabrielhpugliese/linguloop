@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LogoMark from '@/components/LogoMark';
 import { SITE_NAME } from '@/lib/site';
 
 /** Shared frame for the text pages (about, privacy, contact): wordmark header + readable column. */
@@ -7,6 +8,7 @@ export default function InfoLayout({ children }: { children: React.ReactNode }) 
     <>
       <header className="subpage-header">
         <Link href="/" aria-label={`${SITE_NAME} home`}>
+          <LogoMark height={24} />
           {SITE_NAME}
         </Link>
       </header>
