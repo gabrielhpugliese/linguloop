@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import "./globals.css";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import SiteFooter from "@/components/SiteFooter";
@@ -49,10 +50,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={nunito.variable}>
       <body className="site-body">
-        <ThemeRegistry>
-          <main className="site-main">{children}</main>
-          <SiteFooter />
-        </ThemeRegistry>
+        {/* Collects Emotion's styles during SSR and puts them in <head>; without it they were
+            inlined in <body> and broke hydration. */}
+        <AppRouterCacheProvider>
+          <ThemeRegistry>
+            <main className="site-main">{children}</main>
+            <SiteFooter />
+          </ThemeRegistry>
+        </AppRouterCacheProvider>
         {ADSENSE_CLIENT && (
           <Script
             async
