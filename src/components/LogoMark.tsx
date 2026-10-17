@@ -3,7 +3,7 @@
  * Decorative: always rendered next to the visible "LinguLoop" name, so it is hidden from
  * screen readers. Same artwork as src/app/icon.svg (which adds the dark tile).
  */
-export default function LogoMark({ height = 24 }: { height?: number }) {
+export default function LogoMark({ height = 24, style }: { height?: number; style?: React.CSSProperties }) {
   return (
     <svg
       viewBox="0 0 56 32"
@@ -14,7 +14,7 @@ export default function LogoMark({ height = 24 }: { height?: number }) {
       strokeLinecap="round"
       aria-hidden="true"
       focusable="false"
-      style={{ display: 'block', flexShrink: 0 }}
+      style={{ display: 'block', flexShrink: 0, ...style }}
     >
       {/* Gap where the lower-left → upper-right strand passes over the other one. Every
           instance draws the same mask, so a repeated id on one page is harmless. */}

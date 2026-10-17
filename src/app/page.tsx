@@ -225,11 +225,9 @@ export default function Home() {
         sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 2, md: 3 } }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 1.5, rowGap: 0.25, minWidth: 0, flex: 1 }}>
-          <Typography
-            component="h1"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}
-          >
-            <LogoMark height={24} />
+          {/* Block (not flex) so the row's baseline is the name's text baseline, shared with the tagline. */}
+          <Typography component="h1" sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}>
+            <LogoMark height={24} style={{ display: 'inline-block', verticalAlign: '-0.2em', marginRight: 8 }} />
             {SITE_NAME}
           </Typography>
           <Typography variant="body2" color="text.secondary">{SITE_TAGLINE}</Typography>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -9,14 +9,11 @@ import {
   ADSENSE_CLIENT, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL,
 } from "@/lib/site";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Rounded terminals that match the logo mark's round stroke ends. latin-ext covers accented
+// characters in video titles; its files only download when such characters appear.
+const nunito = Nunito({
+  variable: "--font-sans",
+  subsets: ["latin", "latin-ext"],
 });
 
 const TITLE = `${SITE_NAME}: ${SITE_TAGLINE}`;
@@ -50,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={nunito.variable}>
       <body className="site-body">
         <ThemeRegistry>
           <main className="site-main">{children}</main>
