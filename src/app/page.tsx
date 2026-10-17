@@ -221,12 +221,22 @@ export default function Home() {
     <Container maxWidth="xl" sx={{ pt: { xs: 2, md: 3 }, pb: 4 }}>
       <Box
         component="header"
-        sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 1.5, rowGap: 0.25, mb: { xs: 2, md: 3 } }}
+        sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: { xs: 2, md: 3 } }}
       >
-        <Typography component="h1" sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}>
-          {SITE_NAME}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">{SITE_TAGLINE}</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 1.5, rowGap: 0.25, minWidth: 0, flex: 1 }}>
+          <Typography component="h1" sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.2, color: 'primary.main' }}>
+            {SITE_NAME}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">{SITE_TAGLINE}</Typography>
+        </Box>
+        <Box sx={{ flexShrink: 0 }}>
+          <LibraryButton
+            ref={libraryButtonRef}
+            open={isLibraryOpen}
+            notesCount={notesCount}
+            onToggle={toggleLibrary}
+          />
+        </Box>
       </Box>
 
       <AdSlot slot={ADSENSE_SLOT_TOP} variant="top" />
@@ -260,15 +270,6 @@ export default function Home() {
               so opening/closing it never remounts the player. */}
           <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
             <Box ref={videoAreaRef} sx={{ flex: 1, minWidth: 0, scrollMarginTop: 16 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
-                <LibraryButton
-                  ref={libraryButtonRef}
-                  open={isLibraryOpen}
-                  notesCount={notesCount}
-                  onToggle={toggleLibrary}
-                />
-              </Box>
-
               {currentVideo ? (
                 <Box>
                   <Paper className="glass-panel" sx={{ overflow: 'hidden', mb: 4 }}>
